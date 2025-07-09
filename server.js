@@ -12,6 +12,13 @@ const app = express();
 // Hardcoded port for Azure Web App (Azure uses 8080, local development uses 3001)
 const PORT = 8080;
 
+// CORS configuration - allow all origins
+app.use(cors({
+    origin: "*",
+    credentials: false,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 // Security middleware
 app.use(helmet({
     contentSecurityPolicy: {

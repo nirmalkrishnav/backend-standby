@@ -28,7 +28,7 @@ jobs:
           node-version: '22.x'
           cache: 'npm'
 
-      - name: npm install, build, and test
+      - name: npm install and build
         run: |
           npm ci
           npm run build --if-present
@@ -79,13 +79,6 @@ jobs:
 
       - name: Unzip artifact for deployment
         run: unzip release.zip
-      
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_577EC189E29F42DEB055581C0B122C60 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_35C1F98AD7D644B6A9BE2D30FA073439 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_8090579BEF7242FCBF8779911622D334 }}
 
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
@@ -94,51 +87,6 @@ jobs:
           app-name: 'walmart-fashion-ai-api'
           slot-name: 'Production'
           package: .
-          
-      - name: Set App Settings
-        uses: Azure/appservice-settings@v1
-        with:
-          app-name: 'walmart-fashion-ai-api'
-          slot-name: 'Production'
-          app-settings-json: |
-            [
-              {
-                "name": "NODE_ENV",
-                "value": "production"
-              },
-              {
-                "name": "WEBSITE_NODE_DEFAULT_VERSION",
-                "value": "~22"
-              },
-              {
-                "name": "PORT",
-                "value": "8080"
-              },
-              {
-                "name": "SCM_DO_BUILD_DURING_DEPLOYMENT",
-                "value": "false"
-              },
-              {
-                "name": "AZURE_CLIENT_ID",
-                "value": "${{ secrets.AZURE_CLIENT_ID }}"
-              },
-              {
-                "name": "AZURE_CLIENT_SECRET",
-                "value": "${{ secrets.AZURE_CLIENT_SECRET }}"
-              },
-              {
-                "name": "AZURE_TENANT_ID",
-                "value": "${{ secrets.AZURE_TENANT_ID }}"
-              },
-              {
-                "name": "WEBSITE_RUN_FROM_PACKAGE",
-                "value": "1"
-              },
-              {
-                "name": "WEBSITE_STARTUP_FILE",
-                "value": "server.js"
-              }
-            ]
             
       - name: Health Check
         run: |

@@ -5,11 +5,12 @@ import compression from 'compression';
 import dotenv from 'dotenv';
 import runAgentConversation, { resetThread } from './services/agent.js';
 
-// Load environment variables
+// Load environment variables (fallback for local development)
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+// Hardcoded port for Azure Web App (Azure uses 8080, local development uses 3001)
+const PORT = 8080;
 
 // Security middleware
 app.use(helmet({
@@ -27,6 +28,17 @@ app.use(helmet({
         },
     },
     crossOriginEmbedderPolicy: false
+}));
+
+// CORS configuration - hardcoded for production
+app.use(cors({
+    origin: [
+        'http://localhost:3000',  // Local development
+        'https://*.azurewebsites.net'  // Azure Web Apps
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // Performance middleware

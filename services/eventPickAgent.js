@@ -3,9 +3,9 @@ import { DefaultAzureCredential } from "@azure/identity";
 
 // Global instances to reuse
 let projectClient = null;
-let agent = null;
+let EventPickAgent = null;
 
-async function initializeAgent() {
+async function initializeEventPickAgent() {
     if (!projectClient) {
         projectClient = new AIProjectClient(
             "https://wmt-fashion-agent-resource.services.ai.azure.com/api/projects/wmt-fashion-agent",
@@ -14,24 +14,24 @@ async function initializeAgent() {
         console.log('Project client initialized');
     }
 
-    if (!agent) {
-        agent = await projectClient.agents.getAgent("asst_SF8ZBAyhDyKJZYxNi8u0ikNm");
-        console.log(`Agent retrieved: ${agent.name}`);
+    if (!EventPickAgent) {
+        EventPickAgent = await projectClient.agents.getAgent("asst_SF8ZBAyhDyKJZYxNi8u0ikNm");
+        console.log(`EventPick Agent retrieved: ${EventPickAgent.name}`);
     }
 
 
 }
 
-async function runAgentConversation(storeId) {
+async function runEventPickAgentConversation(storeId) {
     try {
-        // Initialize agent components if not already done
-        await initializeAgent();
+        // Initialize EventPick agent components if not already done
+        await initializeEventPickAgent();
 
-        const messageContent = `EventPicks for Store ID ${storeId} in Arkansas State`;
+        const messageContent = `${storeId}`;
         const thread = await projectClient.agents.threads.create();
         const message = await projectClient.agents.messages.create(thread.id, "user", messageContent);
         // Create run
-        let run = await projectClient.agents.runs.create(thread.id, agent.id);
+        let run = await projectClient.agents.runs.create(thread.id, EventPickAgent.id);
 
         // Poll until the run reaches a terminal status
         while (run.status === "queued" || run.status === "in_progress") {
@@ -44,7 +44,7 @@ async function runAgentConversation(storeId) {
             console.error(`Run failed: `, run.lastError);
             return {
                 success: false,
-                error: "Agent run failed",
+                error: "EventPick Agent run failed",
                 details: run.lastError
             };
         }
@@ -68,16 +68,16 @@ async function runAgentConversation(storeId) {
         return {
             success: true,
             threadId: thread.id,
-            agentName: agent.name,
+            agentName: EventPickAgent.name,
             storeId: storeId,
             messages: conversationMessages,
             runStatus: run.status
         };
     } catch (error) {
-        console.error('Error in runAgentConversation:', error);
+        console.error('Error in runEventPickAgentConversation:', error);
         return {
             success: false,
-            error: "Agent conversation failed",
+            error: "EventPick Agent conversation failed",
             details: error.message
         };
     }
@@ -98,5 +98,5 @@ async function resetThread() {
     }
 }
 
-export default runAgentConversation;
+export default runEventPickAgentConversation;
 export { resetThread };

@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import dotenv from 'dotenv';
-import runAgentConversation, { resetThread } from './services/agent.js';
+import runEventPickAgentConversation, { resetThread } from './services/eventPickAgent.js';
 
 // Load environment variables (fallback for local development)
 dotenv.config();
@@ -58,8 +58,8 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// Agent conversation endpoint
-app.get('/api/agent/eventPicks/:storeId', async (req, res) => {
+// VisPick Agent conversation endpoint
+app.get('/api/agent/EventPick/:storeId', async (req, res) => {
     try {
         const { storeId } = req.params;
 
@@ -71,31 +71,31 @@ app.get('/api/agent/eventPicks/:storeId', async (req, res) => {
             });
         }
 
-        const result = await runAgentConversation(storeId);
+        const result = await runEventPickAgentConversation(storeId);
 
         if (result.success) {
             res.status(200).json(result);
         } else {
             res.status(500).json({
                 success: false,
-                error: 'Agent conversation failed',
+                error: 'EventPick Agent conversation failed',
                 message: result.error,
                 details: result.details
             });
         }
     } catch (error) {
-        console.error('Error running agent conversation:', error);
+        console.error('Error running EventPick agent conversation:', error);
         res.status(500).json({
             success: false,
             error: 'Internal server error',
-            message: 'Failed to run agent conversation',
+            message: 'Failed to run EventPick agent conversation',
             details: error.message
         });
     }
 });
 
 // Reset thread endpoint
-app.post('/api/agent/reset-thread', async (req, res) => {
+app.post('/api/EventPick/reset-thread', async (req, res) => {
     try {
         const newThreadId = await resetThread();
         res.json({

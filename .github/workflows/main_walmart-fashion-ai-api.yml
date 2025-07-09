@@ -14,6 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read #This is required for actions/checkout
+    
+    environment:
+      name: 'Production'
+      url: 'https://walmart-fashion-ai-api-e8e0afc0bdbjhebh.eastus2-01.azurewebsites.net'
 
     steps:
       - uses: actions/checkout@v4
@@ -22,15 +26,33 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '22.x'
+          cache: 'npm'
 
       - name: npm install, build, and test
         run: |
-          npm install
+          npm ci
           npm run build --if-present
-          npm run test --if-present
+          npm test --if-present
 
+      - name: Create production package
+        run: |
+          # Install only production dependencies
+          npm ci --production
+          
+          # Only include necessary files for production
+          mkdir production-app
+          cp package.json production-app/
+          cp package-lock.json production-app/ 2>/dev/null || cp yarn.lock production-app/ 2>/dev/null || true
+          cp server.js production-app/
+          cp web.config production-app/
+          cp .deployment production-app/
+          cp -r services production-app/ 2>/dev/null || true
+          cp -r node_modules production-app/
+          
       - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
+        run: |
+          cd production-app
+          zip -r ../release.zip . -x "*.git*" "*.env*" "*.log" "node_modules/.cache/*"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -41,6 +63,10 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
+    
+    environment:
+      name: 'Production'
+      url: 'https://walmart-fashion-ai-api-e8e0afc0bdbjhebh.eastus2-01.azurewebsites.net'
     
     permissions:
       id-token: write #This is required for requesting the JWT
@@ -69,4 +95,75 @@ jobs:
           app-name: 'walmart-fashion-ai-api'
           slot-name: 'Production'
           package: .
+          
+      - name: Set App Settings
+        uses: Azure/appservice-settings@v1
+        with:
+          app-name: 'walmart-fashion-ai-api'
+          slot-name: 'Production'
+          app-settings-json: |
+            [
+              {
+                "name": "NODE_ENV",
+                "value": "production"
+              },
+              {
+                "name": "WEBSITE_NODE_DEFAULT_VERSION",
+                "value": "~22"
+              },
+              {
+                "name": "PORT",
+                "value": "8080"
+              },
+              {
+                "name": "SCM_DO_BUILD_DURING_DEPLOYMENT",
+                "value": "false"
+              },
+              {
+                "name": "AZURE_CLIENT_ID",
+                "value": "${{ secrets.AZURE_CLIENT_ID }}"
+              },
+              {
+                "name": "AZURE_CLIENT_SECRET",
+                "value": "${{ secrets.AZURE_CLIENT_SECRET }}"
+              },
+              {
+                "name": "AZURE_TENANT_ID",
+                "value": "${{ secrets.AZURE_TENANT_ID }}"
+              },
+              {
+                "name": "WEBSITE_RUN_FROM_PACKAGE",
+                "value": "1"
+              },
+              {
+                "name": "WEBSITE_STARTUP_FILE",
+                "value": "server.js"
+              }
+            ]
+            
+      - name: Health Check
+        run: |
+          # Install jq for JSON parsing
+          sudo apt-get update && sudo apt-get install -y jq
+          
+          echo "Waiting for deployment to stabilize..."
+          sleep 30
+          
+          # Check if the health endpoint is responding
+          for i in {1..5}; do
+            echo "Health check attempt $i..."
+            if curl -f -s "https://walmart-fashion-ai-api-e8e0afc0bdbjhebh.eastus2-01.azurewebsites.net/api/health" > /dev/null; then
+              echo "✅ Health check passed!"
+              curl -s "https://walmart-fashion-ai-api-e8e0afc0bdbjhebh.eastus2-01.azurewebsites.net/api/health" | jq '.'
+              break
+            else
+              echo "❌ Health check failed, retrying in 10 seconds..."
+              sleep 10
+            fi
+            
+            if [ $i -eq 5 ]; then
+              echo "❌ Health check failed after 5 attempts"
+              exit 1
+            fi
+          done
           

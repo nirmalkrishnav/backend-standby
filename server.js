@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import dotenv from 'dotenv';
-import runEventPickAgentConversation, { resetThread } from './services/eventPickAgent.js';
+import runAgent, { resetThread } from './services/agent.js';
 
 // Load environment variables (fallback for local development)
 dotenv.config();
@@ -59,9 +59,9 @@ app.get('/api/health', (req, res) => {
 });
 
 // VisPick Agent conversation endpoint
-app.get('/api/agent/EventPick/:storeId', async (req, res) => {
+app.get('/api/agent/:agentName/:storeId', async (req, res) => {
     try {
-        const { storeId } = req.params;
+        const { storeId, agentName } = req.params;
 
         if (!storeId) {
             return res.status(400).json({
@@ -71,7 +71,7 @@ app.get('/api/agent/EventPick/:storeId', async (req, res) => {
             });
         }
 
-        const result = await runEventPickAgentConversation(storeId);
+        const result = await runAgent(storeId, agentName);
 
         if (result.success) {
             res.status(200).json(result);

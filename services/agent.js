@@ -2,36 +2,65 @@ import { AIProjectClient } from "@azure/ai-projects";
 import { DefaultAzureCredential } from "@azure/identity";
 
 // Global instances to reuse
-let projectClient = null;
-let EventPickAgent = null;
+let eventProjectClient = null;
+let eventPickAgent = null;
+let vizProjectClient = null;
+let vizPickAgent = null;
 
-async function initializeEventPickAgent() {
-    if (!projectClient) {
-        projectClient = new AIProjectClient(
+
+async function initializeVizPickAgent() {
+    if (!vizProjectClient) {
+        vizProjectClient = new AIProjectClient(
             "https://wmt-fashion-agent-resource.services.ai.azure.com/api/projects/wmt-fashion-agent",
             new DefaultAzureCredential()
         );
         console.log('Project client initialized');
     }
 
-    if (!EventPickAgent) {
-        EventPickAgent = await projectClient.agents.getAgent("asst_SF8ZBAyhDyKJZYxNi8u0ikNm");
-        console.log(`EventPick Agent retrieved: ${EventPickAgent.name}`);
+    if (!vizPickAgent) {
+        vizPickAgent = await vizProjectClient.agents.getAgent("asst_BzNlNOKe6wNabqag187a3Rma");
+        console.log(`VizPick Agent retrieved: ${vizPickAgent.name}`);
     }
-
-
 }
 
-async function runEventPickAgentConversation(storeId) {
+async function initializeEventPickAgent() {
+    if (!eventProjectClient) {
+        eventProjectClient = new AIProjectClient(
+            "https://wmt-fashion-agent-resource.services.ai.azure.com/api/projects/wmt-fashion-agent",
+            new DefaultAzureCredential()
+        );
+        console.log('Project client initialized');
+    }
+
+    if (!eventPickAgent) {
+        eventPickAgent = await eventProjectClient.agents.getAgent("asst_SF8ZBAyhDyKJZYxNi8u0ikNm");
+        console.log(`EventPick Agent retrieved: ${eventPickAgent.name}`);
+    }
+}
+
+
+async function runAgent(storeId, agentName) {
     try {
+        let projectClient = null;
+        let agent = null;
         // Initialize EventPick agent components if not already done
-        await initializeEventPickAgent();
+        if (agentName === "VizPick") {
+            await initializeVizPickAgent();
+            projectClient = vizProjectClient;
+            agent = vizPickAgent
+        } else if (agentName === "EventPick") {
+            await initializeEventPickAgent();
+            projectClient = eventProjectClient;
+            agent = eventPickAgent;
+        } else {
+            return;
+        }
 
         const messageContent = `${storeId}`;
         const thread = await projectClient.agents.threads.create();
         const message = await projectClient.agents.messages.create(thread.id, "user", messageContent);
         // Create run
-        let run = await projectClient.agents.runs.create(thread.id, EventPickAgent.id);
+        let run = await projectClient.agents.runs.create(thread.id, agent.id);
 
         // Poll until the run reaches a terminal status
         while (run.status === "queued" || run.status === "in_progress") {
@@ -68,13 +97,13 @@ async function runEventPickAgentConversation(storeId) {
         return {
             success: true,
             threadId: thread.id,
-            agentName: EventPickAgent.name,
+            agentName: agent.name,
             storeId: storeId,
             messages: conversationMessages,
             runStatus: run.status
         };
     } catch (error) {
-        console.error('Error in runEventPickAgentConversation:', error);
+        console.error('Error in agent:', error);
         return {
             success: false,
             error: "EventPick Agent conversation failed",
@@ -98,5 +127,5 @@ async function resetThread() {
     }
 }
 
-export default runEventPickAgentConversation;
+export default runAgent;
 export { resetThread };

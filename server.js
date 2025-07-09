@@ -34,7 +34,7 @@ app.use(helmet({
 app.use(cors({
     origin: [
         'http://localhost:3000',  // Local development
-        'https://*.azurewebsites.net'  // Azure Web Apps
+        'https://walmart-fashion-ai-gqd6e7gjetf2ecbr.eastus2-01.azurewebsites.net'  // Azure Web App
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

@@ -30,17 +30,6 @@ app.use(helmet({
     crossOriginEmbedderPolicy: false
 }));
 
-// CORS configuration - hardcoded for production
-app.use(cors({
-    origin: [
-        'http://localhost:3000',  // Local development
-        'https://walmart-fashion-ai-gqd6e7gjetf2ecbr.eastus2-01.azurewebsites.net'  // Azure Web App
-    ],
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
-
 // Performance middleware
 app.use(compression());
 

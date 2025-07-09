@@ -44,11 +44,11 @@ async function runAgent(storeId, agentName) {
         let projectClient = null;
         let agent = null;
         // Initialize EventPick agent components if not already done
-        if (agentName === "VizPick") {
+        if (agentName === "viz-pick") {
             await initializeVizPickAgent();
             projectClient = vizProjectClient;
             agent = vizPickAgent
-        } else if (agentName === "EventPick") {
+        } else if (agentName === "event-pick") {
             await initializeEventPickAgent();
             projectClient = eventProjectClient;
             agent = eventPickAgent;

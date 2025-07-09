@@ -14,10 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read #This is required for actions/checkout
-    
-    environment:
-      name: 'Production'
-      url: 'https://walmart-fashion-ai-api-e8e0afc0bdbjhebh.eastus2-01.azurewebsites.net'
 
     steps:
       - uses: actions/checkout@v4
@@ -26,32 +22,14 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '22.x'
-          cache: 'npm'
 
-      - name: npm install and build
+      - name: npm install, build, and test
         run: |
-          npm ci
+          npm install
           npm run build --if-present
 
-      - name: Create production package
-        run: |
-          # Install only production dependencies
-          npm ci --production
-          
-          # Only include necessary files for production
-          mkdir production-app
-          cp package.json production-app/
-          cp package-lock.json production-app/ 2>/dev/null || cp yarn.lock production-app/ 2>/dev/null || true
-          cp server.js production-app/
-          cp web.config production-app/
-          cp .deployment production-app/
-          cp -r services production-app/ 2>/dev/null || true
-          cp -r node_modules production-app/
-          
       - name: Zip artifact for deployment
-        run: |
-          cd production-app
-          zip -r ../release.zip . -x "*.git*" "*.env*" "*.log" "node_modules/.cache/*"
+        run: zip release.zip ./* -r
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -62,10 +40,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
-    
-    environment:
-      name: 'Production'
-      url: 'https://walmart-fashion-ai-api-e8e0afc0bdbjhebh.eastus2-01.azurewebsites.net'
     
     permissions:
       id-token: write #This is required for requesting the JWT
@@ -79,6 +53,13 @@ jobs:
 
       - name: Unzip artifact for deployment
         run: unzip release.zip
+      
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_577EC189E29F42DEB055581C0B122C60 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_35C1F98AD7D644B6A9BE2D30FA073439 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_8090579BEF7242FCBF8779911622D334 }}
 
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
@@ -87,30 +68,4 @@ jobs:
           app-name: 'walmart-fashion-ai-api'
           slot-name: 'Production'
           package: .
-            
-      - name: Health Check
-        run: |
-          # Install jq for JSON parsing
-          sudo apt-get update && sudo apt-get install -y jq
-          
-          echo "Waiting for deployment to stabilize..."
-          sleep 30
-          
-          # Check if the health endpoint is responding
-          for i in {1..5}; do
-            echo "Health check attempt $i..."
-            if curl -f -s "https://walmart-fashion-ai-api-e8e0afc0bdbjhebh.eastus2-01.azurewebsites.net/api/health" > /dev/null; then
-              echo "✅ Health check passed!"
-              curl -s "https://walmart-fashion-ai-api-e8e0afc0bdbjhebh.eastus2-01.azurewebsites.net/api/health" | jq '.'
-              break
-            else
-              echo "❌ Health check failed, retrying in 10 seconds..."
-              sleep 10
-            fi
-            
-            if [ $i -eq 5 ]; then
-              echo "❌ Health check failed after 5 attempts"
-              exit 1
-            fi
-          done
           

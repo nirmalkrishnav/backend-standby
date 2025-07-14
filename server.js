@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import dotenv from 'dotenv';
-import runAgent, { resetThread } from './services/agent.js';
+import runAgent, { resetThread, runChatbot } from './services/agent.js';
 
 // Load environment variables (fallback for local development)
 dotenv.config();
@@ -85,6 +85,65 @@ app.get('/api/agent/:agentName/:storeId', async (req, res) => {
             success: false,
             error: 'Internal server error',
             message: 'Failed to run EventPick agent conversation',
+            details: error.message
+        });
+    }
+});
+
+// Chatbot conversation endpoint
+app.post('/api/agent/chatbot', async (req, res) => {
+    try {
+        // Try to get message from different possible fields
+        const { message } = req.body;
+
+        // Validate input
+        if (!message || typeof message !== 'string' || message.trim().length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Validation error',
+                message: 'Message is required and must be a non-empty string. Send as {"text": "your message"} or {"message": "your message"}',
+                receivedBody: req.body
+            });
+        }
+
+        // Trim message and check length
+        const trimmedMessage = message.trim();
+        if (trimmedMessage.length > 1000) {
+            return res.status(400).json({
+                success: false,
+                error: 'Validation error',
+                message: 'Message must be 1000 characters or less'
+            });
+        }
+
+        const result = await runChatbot(trimmedMessage);
+
+        if (result.success) {
+            res.status(200).json({
+                success: true,
+                data: {
+                    threadId: result.threadId,
+                    agentName: result.agentName,
+                    userMessage: result.userMessage,
+                    messages: result.messages,
+                    runStatus: result.runStatus,
+                    timestamp: new Date().toISOString()
+                }
+            });
+        } else {
+            res.status(500).json({
+                success: false,
+                error: 'Chatbot conversation failed',
+                message: result.error,
+                details: result.details
+            });
+        }
+    } catch (error) {
+        console.error('Error running chatbot conversation:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Internal server error',
+            message: 'Failed to process chatbot conversation',
             details: error.message
         });
     }

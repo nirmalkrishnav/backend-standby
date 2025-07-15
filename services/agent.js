@@ -25,6 +25,36 @@ async function initializeVizPickAgent() {
     }
 }
 
+async function initializeDigitalPickAgent() {
+    if (!eventProjectClient) {
+        eventProjectClient = new AIProjectClient(
+            "https://wmt-fashion-agent-resource.services.ai.azure.com/api/projects/wmt-fashion-agent",
+            new DefaultAzureCredential()
+        );
+        console.log('Project client initialized');
+    }
+
+    if (!eventPickAgent) {
+        eventPickAgent = await eventProjectClient.agents.getAgent("asst_g5G63l03x5b4AmeqNX3tmR7b");
+        console.log(`EventPick Agent retrieved: ${eventPickAgent.name}`);
+    }
+}
+
+async function initializeHomePageAgent() {
+    if (!eventProjectClient) {
+        eventProjectClient = new AIProjectClient(
+            "https://wmt-fashion-agent-resource.services.ai.azure.com/api/projects/wmt-fashion-agent",
+            new DefaultAzureCredential()
+        );
+        console.log('Project client initialized');
+    }
+
+    if (!eventPickAgent) {
+        eventPickAgent = await eventProjectClient.agents.getAgent("asst_J4qbTb90hXB1xoxHq5CyG2rt");
+        console.log(`EventPick Agent retrieved: ${eventPickAgent.name}`);
+    }
+}
+
 async function initializeEventPickAgent() {
     if (!eventProjectClient) {
         eventProjectClient = new AIProjectClient(
@@ -68,6 +98,14 @@ async function runAgent(storeId, agentName) {
             agent = vizPickAgent
         } else if (agentName === "event-pick") {
             await initializeEventPickAgent();
+            projectClient = eventProjectClient;
+            agent = eventPickAgent;
+        } else if (agentName === "digital-pick") {
+            await initializeDigitalPickAgent();
+            projectClient = eventProjectClient;
+            agent = eventPickAgent;
+        } else if (agentName === "home-page") {
+            await initializeHomePageAgent();
             projectClient = eventProjectClient;
             agent = eventPickAgent;
         } else {
@@ -139,7 +177,7 @@ async function runChatbot(message) {
         // Create thread and send message
         const thread = await chatbotProjectClient.agents.threads.create();
         const userMessage = await chatbotProjectClient.agents.messages.create(thread.id, "user", message);
-        
+
         // Create run
         let run = await chatbotProjectClient.agents.runs.create(thread.id, chatbotAgent.id);
 

@@ -6,6 +6,7 @@ let eventProjectClient = null;
 let eventPickAgent = null;
 let vizProjectClient = null;
 let vizPickAgent = null;
+let homeAgent = null;
 let chatbotProjectClient = null;
 let chatbotAgent = null;
 
@@ -36,7 +37,7 @@ async function initializeDigitalPickAgent() {
 
     if (!eventPickAgent) {
         eventPickAgent = await eventProjectClient.agents.getAgent("asst_g5G63l03x5b4AmeqNX3tmR7b");
-        console.log(`EventPick Agent retrieved: ${eventPickAgent.name}`);
+        console.log(` Agent retrieved: ${eventPickAgent.name}`);
     }
 }
 
@@ -49,9 +50,9 @@ async function initializeHomePageAgent() {
         console.log('Project client initialized');
     }
 
-    if (!eventPickAgent) {
-        eventPickAgent = await eventProjectClient.agents.getAgent("asst_J4qbTb90hXB1xoxHq5CyG2rt");
-        console.log(`EventPick Agent retrieved: ${eventPickAgent.name}`);
+    if (!homeAgent) {
+        homeAgent = await eventProjectClient.agents.getAgent("asst_J4qbTb90hXB1xoxHq5CyG2rt");
+        console.log(` Agent retrieved: ${homeAgent.name}`);
     }
 }
 
@@ -107,7 +108,7 @@ async function runAgent(storeId, agentName) {
         } else if (agentName === "home-page") {
             await initializeHomePageAgent();
             projectClient = eventProjectClient;
-            agent = eventPickAgent;
+            agent = homeAgent;
         } else {
             return;
         }

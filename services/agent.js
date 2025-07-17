@@ -92,6 +92,8 @@ async function runAgent(storeId, agentName) {
     try {
         let projectClient = null;
         let agent = null;
+        let messageContent = `${storeId}`;
+
         // Initialize EventPick agent components if not already done
         if (agentName === "viz-pick") {
             await initializeVizPickAgent();
@@ -101,6 +103,7 @@ async function runAgent(storeId, agentName) {
             await initializeEventPickAgent();
             projectClient = eventProjectClient;
             agent = eventPickAgent;
+            messageContent = 'give me some product recommendations for an upcoming event. Only output the JSON structure, with no extra commentary. Do not include any summary or explanatory text outside the JSON. Do not return in markdown but stringified json'
         } else if (agentName === "digital-pick") {
             await initializeDigitalPickAgent();
             projectClient = eventProjectClient;
@@ -113,7 +116,8 @@ async function runAgent(storeId, agentName) {
             return;
         }
 
-        const messageContent = `${storeId}`;
+
+
         const thread = await projectClient.agents.threads.create();
         const message = await projectClient.agents.messages.create(thread.id, "user", messageContent);
         // Create run
